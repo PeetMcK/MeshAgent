@@ -844,46 +844,26 @@ void kvm_relay_StdErrHandler(ILibProcessPipe_Process sender, char *buffer, size_
 // Setup the KVM session. Return 1 if ok, 0 if it could not be setup.
 void* kvm_relay_setup(char *exePath, void *processPipeMgr, ILibKVM_WriteHandler writeHandler, void *reserved, int uid)
 {
-	char * parms0[] = { "meshagent_osx64", "-kvm0", NULL };
+	char * parms0[] = { "meshagent", "-kvm0", NULL };
 	void **user = (void**)ILibMemory_Allocate(4 * sizeof(void*), 0, NULL, NULL);
 	user[0] = writeHandler;
 	user[1] = reserved;
 	user[2] = processPipeMgr;
 	user[3] = exePath;
 
-	if (uid != 0)
-	{
-		// Spawn child kvm process into a specific user session
-		gChildProcess = ILibProcessPipe_Manager_SpawnProcessEx3(processPipeMgr, exePath, parms0, ILibProcessPipe_SpawnTypes_DEFAULT, (void*)(uint64_t)uid, 0);
-		g_slavekvm = ILibProcessPipe_Process_GetPID(gChildProcess);
+	// Spawn child kvm process into a specific user session
+	gChildProcess = ILibProcessPipe_Manager_SpawnProcessEx3(processPipeMgr, exePath, parms0, ILibProcessPipe_SpawnTypes_DEFAULT, (void*)(uint64_t)uid, 0);
+	g_slavekvm = ILibProcessPipe_Process_GetPID(gChildProcess);
 		
-		char tmp[255];
-		sprintf_s(tmp, sizeof(tmp), "Child KVM (pid: %d)", g_slavekvm);
-		ILibProcessPipe_Process_ResetMetadata(gChildProcess, tmp);
+	char tmp[255];
+	sprintf_s(tmp, sizeof(tmp), "Child KVM (pid: %d)", g_slavekvm);
+	ILibProcessPipe_Process_ResetMetadata(gChildProcess, tmp);
 		
-		ILibProcessPipe_Process_AddHandlers(gChildProcess, 65535, &kvm_relay_ExitHandler, &kvm_relay_StdOutHandler, &kvm_relay_StdErrHandler, NULL, user);
+	ILibProcessPipe_Process_AddHandlers(gChildProcess, 65535, &kvm_relay_ExitHandler, &kvm_relay_StdOutHandler, &kvm_relay_StdErrHandler, NULL, user);
 
-		// Run the relay
-		g_shutdown = 0;
-		return(ILibProcessPipe_Process_GetStdOut(gChildProcess));
-	}
-	else
-	{
-		// No users are logged in. This is a special case for MacOS
-		//int fd = socket(AF_UNIX, SOCK_STREAM, 0);
-		//if (!fd < 0)
-		//{
-		//	struct sockaddr_un serveraddr;
-		//	memset(&serveraddr, 0, sizeof(serveraddr));
-		//	serveraddr.sun_family = AF_UNIX;
-		//	strcpy(serveraddr.sun_path, KVM_Listener_Path);
-		//	if (!connect(fd, (struct sockaddr *)&serveraddr, SUN_LEN(&serveraddr)) < 0)
-		//	{
-		//		return((void*)(uint64_t)fd);
-		//	}
-		//}
-		return((void*)KVM_Listener_Path);
-	}
+	// Run the relay
+	g_shutdown = 0;
+	return(ILibProcessPipe_Process_GetStdOut(gChildProcess));
 }
 
 // Force a KVM reset & refresh
