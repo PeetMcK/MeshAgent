@@ -331,3 +331,6 @@ ASALocalRun/
 .klocwork/
 
 *.o
+microscript/ILibDuktape_Commit.h
+meshagent_osx-arm-64
+microscript/ILibDuktape_Commit.h
